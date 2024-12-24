@@ -17,17 +17,18 @@ func main() {
 	conn := NewConnection()
 	defer conn.DB.Close()
 	server := &http.Server{
-		Addr: os.Getenv("PORT"),
+		Addr:    os.Getenv("PORT"),
+		Handler: registerRouter(conn.DB),
 	}
 	query := database.NewQuery(conn.DB)
 	err := query.CreateTables()
 	if err != nil {
 		log.Fatal("Unable to create database %v", err)
 	}
-	err = query.InsertSampleData()
-	if err != nil {
-		log.Fatal("Unable to create database %v", err)
-	}
+	// err = query.InsertSampleData()
+	// if err != nil {
+	// 	log.Fatal("Unable to create database %v", err)
+	// }
 
 	log.Printf("server is running at port %s", os.Getenv("PORT"))
 	err = server.ListenAndServe()

@@ -17,3 +17,12 @@ type MaterialInward struct {
 	Warranty        int     `json:"warranty"`
 	WarrantyDueDays int     `json:"warranty_due_days"`
 }
+
+type InwardDropDown struct {
+	Supplier string `json:"supplier"`
+	Buyer    string `json:"buyer"`
+}
+
+type MaterialInwardInterface interface {
+	FetchFormData() ([]InwardDropDown, error)
+}
