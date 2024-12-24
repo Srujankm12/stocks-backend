@@ -24,6 +24,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to create database %v", err)
 	}
+	err = query.InsertSampleData()
+	if err != nil {
+		log.Fatal("Unable to create database %v", err)
+	}
+
 	log.Printf("server is running at port %s", os.Getenv("PORT"))
 	err = server.ListenAndServe()
 	if err != nil {
