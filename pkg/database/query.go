@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/Srujankm12/SRstocks/internal/models"
+	"github.com/robfig/cron/v3"
 )
 
 type Query struct {
@@ -17,6 +18,7 @@ func NewQuery(db *sql.DB) *Query {
 	}
 }
 
+// CreateTables creates all required tables in the database.
 func (q *Query) CreateTables() error {
 	tx, err := q.db.Begin()
 	if err != nil {
@@ -54,6 +56,23 @@ func (q *Query) CreateTables() error {
 		`CREATE TABLE IF NOT EXISTS region (
 			region_value VARCHAR(100) NOT NULL UNIQUE
 		)`,
+		`CREATE TABLE IF NOT EXISTS submitteddata (
+			timestamp VARCHAR(255) NOT NULL,
+			supplier VARCHAR(255) NOT NULL,
+			buyer VARCHAR(255) NOT NULL,
+			partcode VARCHAR(255) NOT NULL,
+			serial_number VARCHAR(255) NOT NULL,
+			qty INT NOT NULL,
+			po_no VARCHAR(255) NOT NULL,
+			po_date DATE NOT NULL,
+			invoice_no VARCHAR(255) NOT NULL,
+			invoice_date DATE NOT NULL,
+			received_date DATE NOT NULL,
+			unit_price_per_qty DECIMAL(10, 2) NOT NULL,
+			category VARCHAR(255) NOT NULL,
+			warranty INT NOT NULL,
+			warranty_due_days INT NOT NULL
+		);`,
 	}
 
 	for _, query := range queries {
@@ -73,6 +92,7 @@ func (q *Query) CreateTables() error {
 	return nil
 }
 
+// FetchFormData retrieves the suppliers and buyers for dropdown options.
 func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 	var formdata models.InwardDropDown
 	var formdatas []models.InwardDropDown
@@ -93,46 +113,63 @@ func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 	return formdatas, nil
 }
 
-// func (q *Query) InsertSampleData() error {
-// 	tx, err := q.db.Begin()
-// 	if err != nil {
-// 		log.Printf("Failed to begin transaction: %v", err)
-// 		return err
-// 	}
+// SubmitFormData submits the form data into the database.
+func (q *Query) SubmitFormData(material models.MaterialInward) error {
+	_, err := q.db.Exec(
+		`INSERT INTO submitteddata (
+			timestamp,
+			supplier,
+			buyer,
+			partcode,
+			serial_number,
+			qty,
+			po_no,
+			po_date,
+			invoice_no,
+			invoice_date,
+			received_date,
+			unit_price_per_qty,
+			category,
+			warranty,
+			warranty_due_days
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+		material.Timestamp,
+		material.Supplier,
+		material.Buyer,
+		material.PartCode,
+		material.SerialNumber,
+		material.Quantity,
+		material.PONo,
+		material.PODate,
+		material.InvoiceNo,
+		material.InvoiceDate,
+		material.ReceivedDate,
+		material.UnitPricePerQty,
+		material.Category,
+		material.Warranty,
+		material.WarrantyDueDays, // warranty_due_days is set to the initial value here
+	)
+	return err
+}
 
-// 	queriess := []string{
-// 		`INSERT INTO unit (unit_value) VALUES
-// 			('Nos'), ('Mtrs'), ('Set'), ('Day'), ('Lot'), ('Kgs'), ('Ltrs'), ('Days')`,
-// 		`INSERT INTO category (category_value) VALUES
-// 			('FX PLC'), ('HMI'), ('SERVO'), ('VFD'), ('S-Tech'), ('SR Systech')`,
-// 		`INSERT INTO supplier (supplier_value) VALUES
-// 			('Mitsubishi Electric India'), ('Pheonix India'), ('Beijjer'), ('Altronix'), ('S-Tech'), ('SR Systech')`,
-// 		`INSERT INTO leadtime(leadtime_value) VALUES
-// 		('3-4months')`,
-// 		`INSERT INTO std (std_value)VALUES
-// 		('std'),('non std')`,
-// 		`INSERT INTO issueagainst (issueagainst_value)VALUES
-// 		('Invoice'),('Returnable DC '),('Non Returnable DC'),('Project'),('Other')`,
-// 		`INSERT INTO seller (seller_value)VALUES
-// 		('SRAB'),('SRCPL'),('EXL'),('Other')`,
-// 		`INSERT INTO buyer (buyer_value)VALUES
-// 		('SRAB'),('SRCPL'),('EXL'),('Other')`,
-// 		`INSERT INTO region(region_value)VALUES
-// 		('Hyderabad'),('Vizag'),('Chennai'),('Bangalore')`,
-// 	}
+// UpdateWarrantyDueDays decrements the warranty due days daily.
+func (q *Query) UpdateWarrantyDueDays() {
+	// Set up cron job to run every day at midnight
+	c := cron.New()
+	_, err := c.AddFunc("0 0 * * *", func() {
+		// Decrement warranty_due_days for records where warranty_due_days > 0
+		result, err := q.db.Exec(`UPDATE submitteddata SET warranty_due_days = warranty_due_days - 1 WHERE warranty_due_days > 0`)
+		if err != nil {
+			log.Printf("Error updating warranty_due_days: %v", err)
+		} else {
+			affectedRows, _ := result.RowsAffected() // Get the number of rows affected by the update
+			log.Printf("Warranty due days updated successfully. %d rows affected.", affectedRows)
+		}
+	})
+	if err != nil {
+		log.Fatalf("Error scheduling cron job: %v", err)
+	}
 
-// 	for _, query := range queriess {
-// 		if _, err := tx.Exec(query); err != nil {
-// 			log.Printf("Failed to execute query:\n%s\nError: %v", query, err)
-// 			tx.Rollback()
-// 			return err
-// 		}
-// 	}
-// 	if err := tx.Commit(); err != nil {
-// 		log.Printf("Failed to commit transaction: %v", err)
-// 		return err
-// 	}
-
-// 	log.Println("Sample data inserted successfully.")
-// 	return nil
-// }
+	// Start the cron job
+	c.Start()
+}

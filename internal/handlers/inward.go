@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -18,7 +19,7 @@ func NewInwardController(inwardRepo models.MaterialInwardInterface) *InwardContr
 	}
 }
 
-func (ic *InwardController) FetchInwardData(w http.ResponseWriter, r *http.Request) {
+func (ic *InwardController) FetchInwardDataController(w http.ResponseWriter, r *http.Request) {
 	inwardData, err := ic.inwardRepo.FetchFormData()
 	if err != nil {
 		log.Printf("Error fetching inward data: %v", err)
@@ -36,4 +37,27 @@ func (ic *InwardController) FetchInwardData(w http.ResponseWriter, r *http.Reque
 
 	w.WriteHeader(http.StatusOK)
 	utils.Encode(w, inwardData)
+}
+
+func (ic *InwardController) SubmitInwardDataController(w http.ResponseWriter, r *http.Request) {
+	var material models.MaterialInward
+
+	// Parse the JSON body into the MaterialInward struct
+	err := json.NewDecoder(r.Body).Decode(&material)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		utils.Encode(w, map[string]string{"message": "Invalid request body"})
+		return
+	}
+
+	// Pass the parsed data to the repository
+	err = ic.inwardRepo.SubmitFormData(material)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		utils.Encode(w, map[string]string{"message": err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	utils.Encode(w, map[string]string{"message": "success"})
 }

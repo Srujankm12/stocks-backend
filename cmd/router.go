@@ -12,8 +12,12 @@ import (
 func registerRouter(db *sql.DB) *mux.Router {
 	router := mux.NewRouter()
 	router.Use(middlewares.CorsMiddleware)
+
 	inwardcon := handlers.NewInwardController(repository.NewMaterialInwardRepo(db))
-	router.HandleFunc("/inward", inwardcon.FetchInwardData).Methods("GET")
+
+	// Register routes
+	router.HandleFunc("/inward", inwardcon.FetchInwardDataController).Methods("GET")
+	router.HandleFunc("/submit", inwardcon.SubmitInwardDataController).Methods("POST") // Handle POST for submitting form data
 
 	return router
 }

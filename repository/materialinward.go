@@ -23,10 +23,17 @@ func (mir *MaterialInwardRepo) FetchFormData() ([]models.InwardDropDown, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	// Ensure we don't return nil for empty data
 	if len(res) == 0 {
 		return []models.InwardDropDown{}, nil
 	}
 	return res, nil
+}
+
+func (mir *MaterialInwardRepo) SubmitFormData(material models.MaterialInward) error {
+	query := database.NewQuery(mir.db)
+	err := query.SubmitFormData(material)
+	if err != nil {
+		return err
+	}
+	return nil
 }

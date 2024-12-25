@@ -25,6 +25,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to create database %v", err)
 	}
+	query.UpdateWarrantyDueDays()
+
 	// err = query.InsertSampleData()
 	// if err != nil {
 	// 	log.Fatal("Unable to create database %v", err)

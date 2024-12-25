@@ -25,4 +25,5 @@ type InwardDropDown struct {
 
 type MaterialInwardInterface interface {
 	FetchFormData() ([]InwardDropDown, error)
+	SubmitFormData(material MaterialInward) error // Accept MaterialInward instead of *http.Request
 }
