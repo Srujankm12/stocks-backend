@@ -17,7 +17,8 @@ func registerRouter(db *sql.DB) *mux.Router {
 
 	// Register routes
 	router.HandleFunc("/inward", inwardcon.FetchInwardDataController).Methods("GET")
-	router.HandleFunc("/submit", inwardcon.SubmitInwardDataController).Methods("POST") // Handle POST for submitting form data
+	router.HandleFunc("/submit", inwardcon.SubmitInwardDataController).Methods("POST")
+	router.HandleFunc("/getlist", inwardcon.FetchFormInwardDataController).Methods("GET")
 
 	return router
 }

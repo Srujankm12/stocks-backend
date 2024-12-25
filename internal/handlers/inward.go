@@ -61,3 +61,23 @@ func (ic *InwardController) SubmitInwardDataController(w http.ResponseWriter, r 
 	w.WriteHeader(http.StatusOK)
 	utils.Encode(w, map[string]string{"message": "success"})
 }
+
+func (ic *InwardController) FetchFormInwardDataController(w http.ResponseWriter, r *http.Request) {
+	inwardData, err := ic.inwardRepo.FetchAllFormDataInward(r)
+	if err != nil {
+		log.Printf("Error fetching all inward data: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		utils.Encode(w, map[string]string{"message": "Internal Server Error"})
+		return
+	}
+
+	if len(inwardData) == 0 {
+		log.Println("No inward form data found.")
+		w.WriteHeader(http.StatusOK)
+		utils.Encode(w, []models.MaterialInward{})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	utils.Encode(w, inwardData)
+}

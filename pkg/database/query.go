@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"time"
 
 	"github.com/Srujankm12/SRstocks/internal/models"
 	"github.com/robfig/cron/v3"
@@ -131,7 +132,7 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 			category,
 			warranty,
 			warranty_due_days
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)`,
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
 		material.Timestamp,
 		material.Supplier,
 		material.Buyer,
@@ -146,14 +147,62 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 		material.UnitPricePerQty,
 		material.Category,
 		material.Warranty,
-		material.Warranty,
+		material.WarrantyDueDays,
 	)
 	return err
 }
 
+func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
+	var materials []models.MaterialInward
+	rows, err := q.db.Query(`
+        SELECT 
+            timestamp, supplier, buyer, partcode, serial_number, qty, po_no, po_date, 
+            invoice_no, invoice_date, received_date, unit_price_per_qty, category, 
+            warranty, warranty_due_days 
+        FROM submitteddata
+    `)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var material models.MaterialInward
+		err := rows.Scan(
+			&material.Timestamp, &material.Supplier, &material.Buyer, &material.PartCode,
+			&material.SerialNumber, &material.Quantity, &material.PONo, &material.PODate,
+			&material.InvoiceNo, &material.InvoiceDate, &material.ReceivedDate,
+			&material.UnitPricePerQty, &material.Category, &material.Warranty,
+			&material.WarrantyDueDays,
+		)
+		if err != nil {
+			return nil, err
+		}
+		materials = append(materials, material)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return materials, nil
+}
+
 func (q *Query) UpdateWarrantyDueDays() {
-	c := cron.New()
-	_, err := c.AddFunc("0 0 * * *", func() {
+	// Load the time zone for Bengaluru (Asia/Kolkata)
+	loc, err := time.LoadLocation("Asia/Kolkata") // Bengaluru time zone
+	if err != nil {
+		log.Fatalf("Failed to load time zone: %v", err)
+	}
+
+	// Create a new cron job with the specified time zone
+	c := cron.New(cron.WithLocation(loc))
+
+	// Schedule the cron job to run at midnight every day
+	_, err = c.AddFunc("0 0 * * *", func() {
+		log.Println("Cron job triggered: Updating warranty_due_days")
+
+		// Execute the update query to decrement warranty_due_days
 		result, err := q.db.Exec(`
 			UPDATE submitteddata 
 			SET warranty_due_days = warranty_due_days - 1 
@@ -162,14 +211,21 @@ func (q *Query) UpdateWarrantyDueDays() {
 		if err != nil {
 			log.Printf("Error updating warranty_due_days: %v", err)
 		} else {
-			rowsAffected, _ := result.RowsAffected()
-			log.Printf("Warranty due days updated successfully. %d rows affected.", rowsAffected)
+			// Get the number of affected rows
+			rowsAffected, err := result.RowsAffected()
+			if err != nil {
+				log.Printf("Error fetching affected rows: %v", err)
+			} else {
+				log.Printf("Warranty due days updated successfully. %d rows affected.", rowsAffected)
+			}
 		}
 	})
+
 	if err != nil {
 		log.Fatalf("Error scheduling cron job: %v", err)
 	}
 
+	// Start the cron job
 	c.Start()
 	log.Println("Cron job for updating warranty due days started successfully.")
 }

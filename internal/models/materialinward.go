@@ -1,5 +1,7 @@
 package models
 
+import "net/http"
+
 type MaterialInward struct {
 	Timestamp       string  `json:"timestamp"`
 	Supplier        string  `json:"supplier"`
@@ -25,5 +27,6 @@ type InwardDropDown struct {
 
 type MaterialInwardInterface interface {
 	FetchFormData() ([]InwardDropDown, error)
-	SubmitFormData(material MaterialInward) error // Accept MaterialInward instead of *http.Request
+	SubmitFormData(material MaterialInward) error
+	FetchAllFormDataInward(r *http.Request) ([]MaterialInward, error)
 }
