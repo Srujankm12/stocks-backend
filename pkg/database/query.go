@@ -121,7 +121,6 @@ func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 
 	return formdatas, nil
 }
-
 func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	_, err := q.db.Exec(
 		`INSERT INTO submitteddata (
@@ -131,6 +130,7 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 			partcode,
 			serial_number,
 			qty,
+			remaining_qty,
 			po_no,
 			po_date,
 			invoice_no,
@@ -140,7 +140,7 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 			category,
 			warranty,
 			warranty_due_days
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+		) VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
 		material.Timestamp,
 		material.Supplier,
 		material.Buyer,
@@ -155,7 +155,7 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 		material.UnitPricePerQty,
 		material.Category,
 		material.Warranty,
-		material.Warranty,
+		material.WarrantyDueDays,
 	)
 	return err
 }
