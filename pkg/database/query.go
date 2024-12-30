@@ -14,9 +14,8 @@ type Query struct {
 	cron *cron.Cron
 }
 
-// NewQuery initializes a new Query instance with a database connection and cron scheduler.
 func NewQuery(db *sql.DB) *Query {
-	// Load the time zone for Bengaluru (Asia/Kolkata)
+
 	loc, err := time.LoadLocation("Asia/Kolkata")
 	if err != nil {
 		log.Fatalf("Failed to load time zone: %v", err)
@@ -24,11 +23,10 @@ func NewQuery(db *sql.DB) *Query {
 
 	return &Query{
 		db:   db,
-		cron: cron.New(cron.WithLocation(loc)), // Default settings with no seconds precision
+		cron: cron.New(cron.WithLocation(loc)),
 	}
 }
 
-// CreateTables creates the necessary tables in the database.
 func (q *Query) CreateTables() error {
 	tx, err := q.db.Begin()
 	if err != nil {
@@ -101,7 +99,6 @@ func (q *Query) CreateTables() error {
 	return nil
 }
 
-// FetchFormData retrieves buyer and supplier dropdown data.
 func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 	var formdatas []models.InwardDropDown
 	rows, err := q.db.Query("SELECT b.buyer_value, s.supplier_value FROM buyer b CROSS JOIN supplier s;")
@@ -125,7 +122,6 @@ func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 	return formdatas, nil
 }
 
-// SubmitFormData inserts form data into the `submitteddata` table.
 func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	_, err := q.db.Exec(
 		`INSERT INTO submitteddata (
@@ -159,12 +155,11 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 		material.UnitPricePerQty,
 		material.Category,
 		material.Warranty,
-		material.Warranty, // Initial warranty_due_days is equal to warranty
+		material.Warranty,
 	)
 	return err
 }
 
-// FetchAllFormData retrieves all form data from the `submitteddata` table.
 func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 	var materials []models.MaterialInward
 	rows, err := q.db.Query(`
@@ -201,9 +196,8 @@ func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 	return materials, nil
 }
 
-// UpdateWarrantyDueDays schedules a cron job to decrement warranty_due_days daily.
 func (q *Query) UpdateWarrantyDueDays() {
-	// Schedule the cron job to run at midnight daily
+
 	_, err := q.cron.AddFunc("0 0 * * *", func() {
 		log.Println("Cron job triggered: Updating warranty_due_days")
 
@@ -228,7 +222,6 @@ func (q *Query) UpdateWarrantyDueDays() {
 		log.Fatalf("Error scheduling cron job: %v", err)
 	}
 
-	// Start the cron scheduler
 	q.cron.Start()
 	log.Println("Cron job for updating warranty due days started successfully.")
 }
