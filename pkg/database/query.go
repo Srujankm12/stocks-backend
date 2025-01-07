@@ -15,7 +15,6 @@ type Query struct {
 }
 
 func NewQuery(db *sql.DB) *Query {
-
 	loc, err := time.LoadLocation("Asia/Kolkata")
 	if err != nil {
 		log.Fatalf("Failed to load time zone: %v", err)
@@ -43,26 +42,8 @@ func (q *Query) CreateTables() error {
 		`CREATE TABLE IF NOT EXISTS supplier (
 			supplier_value VARCHAR(100) NOT NULL UNIQUE
 		)`,
-		`CREATE TABLE IF NOT EXISTS leadtime (
-			leadtime_value VARCHAR(100) NOT NULL UNIQUE
-		)`,
-		`CREATE TABLE IF NOT EXISTS std (
-			std_value VARCHAR(100) NOT NULL UNIQUE
-		)`,
-		`CREATE TABLE IF NOT EXISTS warranty (
-			warranty_value VARCHAR(100) NOT NULL UNIQUE
-		)`,
-		`CREATE TABLE IF NOT EXISTS issueagainst (
-			issueagainst_value VARCHAR(100) NOT NULL UNIQUE
-		)`,
-		`CREATE TABLE IF NOT EXISTS seller (
-			seller_value VARCHAR(100) NOT NULL UNIQUE
-		)`,
 		`CREATE TABLE IF NOT EXISTS buyer (
 			buyer_value VARCHAR(100) NOT NULL UNIQUE
-		)`,
-		`CREATE TABLE IF NOT EXISTS region (
-			region_value VARCHAR(100) NOT NULL UNIQUE
 		)`,
 		`CREATE TABLE IF NOT EXISTS submitteddata (
 			timestamp VARCHAR(255) NOT NULL,
@@ -71,6 +52,7 @@ func (q *Query) CreateTables() error {
 			partcode VARCHAR(255) NOT NULL,
 			serial_number VARCHAR(255) NOT NULL,
 			qty INT NOT NULL,
+			remaining_qty INT NOT NULL,
 			po_no VARCHAR(255) NOT NULL,
 			po_date DATE NOT NULL,
 			invoice_no VARCHAR(255) NOT NULL,
@@ -121,6 +103,7 @@ func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 
 	return formdatas, nil
 }
+
 func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	_, err := q.db.Exec(
 		`INSERT INTO submitteddata (
@@ -140,7 +123,10 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 			category,
 			warranty,
 			warranty_due_days
-		) VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14 ,$15
+			
+		)`,
 		material.Timestamp,
 		material.Supplier,
 		material.Buyer,
@@ -155,7 +141,7 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 		material.UnitPricePerQty,
 		material.Category,
 		material.Warranty,
-		material.WarrantyDueDays,
+		material.Warranty,
 	)
 	return err
 }
@@ -197,8 +183,8 @@ func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 }
 
 func (q *Query) UpdateWarrantyDueDays() {
-
-	_, err := q.cron.AddFunc("0 0 * * *", func() {
+	// Schedule the cron job to run every 10 seconds
+	_, err := q.cron.AddFunc("@every 1s", func() {
 		log.Println("Cron job triggered: Updating warranty_due_days")
 
 		result, err := q.db.Exec(`
@@ -222,6 +208,7 @@ func (q *Query) UpdateWarrantyDueDays() {
 		log.Fatalf("Error scheduling cron job: %v", err)
 	}
 
+	// Start the cron scheduler
 	q.cron.Start()
 	log.Println("Cron job for updating warranty due days started successfully.")
 }
