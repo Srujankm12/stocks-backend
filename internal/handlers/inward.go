@@ -41,8 +41,6 @@ func (ic *InwardController) FetchInwardDataController(w http.ResponseWriter, r *
 
 func (ic *InwardController) SubmitInwardDataController(w http.ResponseWriter, r *http.Request) {
 	var material models.MaterialInward
-
-	// Parse the JSON body into the MaterialInward struct
 	err := json.NewDecoder(r.Body).Decode(&material)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -50,7 +48,6 @@ func (ic *InwardController) SubmitInwardDataController(w http.ResponseWriter, r 
 		return
 	}
 
-	// Pass the parsed data to the repository
 	err = ic.inwardRepo.SubmitFormData(material)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

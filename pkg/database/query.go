@@ -34,16 +34,16 @@ func (q *Query) CreateTables() error {
 
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS unit (
-			unit_value VARCHAR(100) NOT NULL UNIQUE
+			unit_name VARCHAR(100) NOT NULL UNIQUE
 		)`,
 		`CREATE TABLE IF NOT EXISTS category (
-			category_value VARCHAR(100) NOT NULL UNIQUE
+			category_name VARCHAR(100) NOT NULL UNIQUE
 		)`,
 		`CREATE TABLE IF NOT EXISTS supplier (
-			supplier_value VARCHAR(100) NOT NULL UNIQUE
+			supplier_name VARCHAR(100) NOT NULL UNIQUE
 		)`,
 		`CREATE TABLE IF NOT EXISTS buyer (
-			buyer_value VARCHAR(100) NOT NULL UNIQUE
+			buyer_name VARCHAR(100) NOT NULL UNIQUE
 		)`,
 		`CREATE TABLE IF NOT EXISTS submitteddata (
 			timestamp VARCHAR(255) NOT NULL,
@@ -59,6 +59,26 @@ func (q *Query) CreateTables() error {
 			invoice_date DATE NOT NULL,
 			received_date DATE NOT NULL,
 			unit_price_per_qty DECIMAL(10, 2) NOT NULL,
+			category VARCHAR(255) NOT NULL,
+			warranty INT NOT NULL,
+			warranty_due_days INT NOT NULL
+		);`,
+		`CREATE TABLE IF NOT EXISTS outwarddata (
+			timestamp VARCHAR(255) NOT NULL,
+			customer VARCHAR(255) NOT NULL,
+			seller VARCHAR(255) NOT NULL,
+			branch_region VARCHAR(255) NOT NULL,
+			partcode VARCHAR(255) NOT NULL,
+			serial_number VARCHAR(255) NOT NULL,
+			quantity INT NOT NULL,
+			cus_po_no VARCHAR(255) NOT NULL,
+			cus_po_date DATE NOT NULL,
+			cus_invoice_no VARCHAR(255) NOT NULL,
+			cus_invoice_date DATE NOT NULL,
+			delivered_date DATE NOT NULL,
+			unit_price_per_qty FLOAT NOT NULL,
+			issue_against VARCHAR(255) NOT NULL,
+			notes TEXT NOT NULL,
 			category VARCHAR(255) NOT NULL,
 			warranty INT NOT NULL,
 			warranty_due_days INT NOT NULL
@@ -104,6 +124,87 @@ func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 	return formdatas, nil
 }
 
+func (q *Query) FetchFormOutwardDropDown() ([]models.OutwardDropDown, error) {
+	var formdatasoutward []models.OutwardDropDown
+	rows, err := q.db.Query("SELECT s.seller_value, b.region_value, i.issueagainst_value FROM seller s CROSS JOIN region b CROSS JOIN issueagainst i;")
+	if err != nil {
+		log.Printf("Error executing query: %v", err)
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var formOutwardData models.OutwardDropDown
+		if err := rows.Scan(&formOutwardData.Seller, &formOutwardData.BranchRegion, &formOutwardData.IssuesAgainst); err != nil {
+			log.Printf("Error scanning row: %v", err)
+			return nil, err
+		}
+
+		formdatasoutward = append(formdatasoutward, formOutwardData)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return formdatasoutward, nil
+}
+func (q *Query) SubmitFormOutwardData(material models.MaterialOutward) error {
+	result, err := q.db.Exec(
+		`INSERT INTO outwarddata (
+			timestamp,
+			customer,
+			seller,
+			branch_region,
+			partcode,
+			serial_number,
+			quantity,
+			cus_po_no,
+			cus_po_date,
+			cus_invoice_no,
+			cus_invoice_date,
+			delivered_date,
+			unit_price_per_qty,
+			issue_against,
+			notes,
+			category,
+			warranty,
+			warranty_due_days
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+		)`,
+		material.Timestamp,
+		material.Customer,
+		material.Seller,
+		material.BranchRegion,
+		material.PartCode,
+		material.SerialNumber,
+		material.Quantity,
+		material.CusPONo,
+		material.CusPODate,
+		material.CusInvoiceNo,
+		material.CusInvoiceDate,
+		material.DeliveredDate,
+		material.UnitPricePerQty,
+		material.IssuesAgainst,
+		material.Notes,
+		material.Category,
+		material.Warranty,
+		material.Warranty,
+	)
+	if err != nil {
+		log.Printf("Error inserting outward data: %v", err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error fetching affected rows: %v", err)
+		return err
+	}
+	log.Printf("Outward data inserted successfully. %d rows affected.", rowsAffected)
+	return nil
+}
+
 func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	_, err := q.db.Exec(
 		`INSERT INTO submitteddata (
@@ -145,6 +246,44 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	)
 	return err
 }
+func (q *Query) FetchAllFormOutwardData() ([]models.MaterialOutward, error) {
+	var materials []models.MaterialOutward
+	rows, err := q.db.Query(`
+    SELECT 
+        timestamp, customer, seller, branch_region, partcode, serial_number, quantity,
+        cus_po_no, cus_po_date, cus_invoice_no, cus_invoice_date, 
+        delivered_date, unit_price_per_qty, issue_against, notes, category, warranty, warranty_due_days
+    FROM outwarddata
+`)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var material models.MaterialOutward
+		err := rows.Scan(
+			&material.Timestamp, &material.Customer, &material.Seller, &material.BranchRegion,
+			&material.PartCode, &material.SerialNumber, &material.Quantity, &material.CusPONo,
+			&material.CusPODate, &material.CusInvoiceNo, &material.CusInvoiceDate, &material.DeliveredDate,
+			&material.UnitPricePerQty, &material.IssuesAgainst, &material.Notes, &material.Category,
+			&material.Warranty, &material.WarrantyDueDays,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		materials = append(materials, material)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return materials, nil
+}
 
 func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 	var materials []models.MaterialInward
@@ -183,26 +322,45 @@ func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 }
 
 func (q *Query) UpdateWarrantyDueDays() {
-	// Schedule the cron job to run every 10 seconds
+	// Schedule the cron job to run every 1 second
 	_, err := q.cron.AddFunc("@every 1s", func() {
 		log.Println("Cron job triggered: Updating warranty_due_days")
 
+		// Update warranty_due_days for submitteddata
 		result, err := q.db.Exec(`
-			UPDATE submitteddata 
+			UPDATE submitteddata
 			SET warranty_due_days = GREATEST(warranty_due_days - 1, 0)
 			WHERE warranty_due_days > 0
 		`)
 		if err != nil {
-			log.Printf("Error updating warranty_due_days: %v", err)
+			log.Printf("Error updating warranty_due_days in submitteddata: %v", err)
 			return
 		}
 
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			log.Printf("Error fetching affected rows: %v", err)
+			log.Printf("Error fetching affected rows for submitteddata: %v", err)
 			return
 		}
-		log.Printf("Warranty due days updated successfully. %d rows affected.", rowsAffected)
+		log.Printf("Warranty due days updated in submitteddata. %d rows affected.", rowsAffected)
+
+		// Update warranty_due_days for outwarddata
+		result, err = q.db.Exec(`
+			UPDATE outwarddata
+			SET warranty_due_days = GREATEST(warranty_due_days - 1, 0)
+			WHERE warranty_due_days > 0
+		`)
+		if err != nil {
+			log.Printf("Error updating warranty_due_days in outwarddata: %v", err)
+			return
+		}
+
+		rowsAffected, err = result.RowsAffected()
+		if err != nil {
+			log.Printf("Error fetching affected rows for outwarddata: %v", err)
+			return
+		}
+		log.Printf("Warranty due days updated in outwarddata. %d rows affected.", rowsAffected)
 	})
 	if err != nil {
 		log.Fatalf("Error scheduling cron job: %v", err)

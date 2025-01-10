@@ -1,5 +1,7 @@
 package models
 
+import "net/http"
+
 type MaterialOutward struct {
 	Timestamp       string  `json:"timestamp"`
 	Customer        string  `json:"customer"`
@@ -19,4 +21,15 @@ type MaterialOutward struct {
 	Category        string  `json:"category"`
 	Warranty        int     `json:"warranty"`
 	WarrantyDueDays int     `json:"warranty_due_days"`
+}
+
+type OutwardDropDown struct {
+	Seller        string `json:"seller"`
+	BranchRegion  string `json:"branch_region"`
+	IssuesAgainst string `json:"issue_against"`
+}
+type MaterialOutwardInterface interface {
+	FetchFormDropdownData() ([]OutwardDropDown, error)
+	SubmitFormOutwardData(material MaterialOutward) error
+	FetchAllFormOutwardData(r *http.Request) ([]MaterialOutward, error)
 }
