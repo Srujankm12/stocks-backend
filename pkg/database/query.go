@@ -45,6 +45,15 @@ func (q *Query) CreateTables() error {
 		`CREATE TABLE IF NOT EXISTS buyer (
 			buyer_name VARCHAR(100) NOT NULL UNIQUE
 		)`,
+		`CREATE TABLE IF NOT EXISTS branch_region (
+			region_name VARCHAR(100) NOT NULL UNIQUE
+		)`,
+		`CREATE TABLE IF NOT EXISTS issueagainst (
+			issueagainst_name VARCHAR(100) NOT NULL UNIQUE
+		)`,
+		`CREATE TABLE IF NOT EXISTS seller (
+			seller_name VARCHAR(100) NOT NULL UNIQUE
+		)`,
 		`CREATE TABLE IF NOT EXISTS submitteddata (
 			timestamp VARCHAR(255) NOT NULL,
 			supplier VARCHAR(255) NOT NULL,
@@ -103,7 +112,7 @@ func (q *Query) CreateTables() error {
 
 func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 	var formdatas []models.InwardDropDown
-	rows, err := q.db.Query("SELECT b.buyer_value, s.supplier_value FROM buyer b CROSS JOIN supplier s;")
+	rows, err := q.db.Query("SELECT b.buyer_name, s.supplier_name FROM buyer b CROSS JOIN supplier s;")
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +135,7 @@ func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 
 func (q *Query) FetchFormOutwardDropDown() ([]models.OutwardDropDown, error) {
 	var formdatasoutward []models.OutwardDropDown
-	rows, err := q.db.Query("SELECT s.seller_value, b.region_value, i.issueagainst_value FROM seller s CROSS JOIN region b CROSS JOIN issueagainst i;")
+	rows, err := q.db.Query("SELECT s.seller_name, b.region_name, i.issueagainst_name FROM seller s CROSS JOIN region b CROSS JOIN issueagainst i;")
 	if err != nil {
 		log.Printf("Error executing query: %v", err)
 		return nil, err
