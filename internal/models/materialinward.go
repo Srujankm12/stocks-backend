@@ -23,6 +23,7 @@ type MaterialInward struct {
 type InwardDropDown struct {
 	Supplier string `json:"supplier"`
 	Buyer    string `json:"buyer"`
+	Category string `json:"category"`
 }
 
 type MaterialInwardInterface interface {

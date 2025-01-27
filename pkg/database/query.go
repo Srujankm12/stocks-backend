@@ -71,7 +71,7 @@ func (q *Query) CreateTables() error {
 			category VARCHAR(255) NOT NULL,
 			warranty INT NOT NULL,
 			warranty_due_days INT NOT NULL
-		);`,
+		)`,
 		`CREATE TABLE IF NOT EXISTS outwarddata (
 			timestamp VARCHAR(255) NOT NULL,
 			customer VARCHAR(255) NOT NULL,
@@ -91,7 +91,28 @@ func (q *Query) CreateTables() error {
 			category VARCHAR(255) NOT NULL,
 			warranty INT NOT NULL,
 			warranty_due_days INT NOT NULL
-		);`,
+		)`,
+		`CREATE TABLE IF NOT EXISTS material_stock (
+			timestamp VARCHAR(255) NOT NULL,
+			supplier VARCHAR(255) NOT NULL,
+			category VARCHAR(255),
+			lead_time INT,
+			std_non_std VARCHAR(50),
+			part_code VARCHAR(255) NOT NULL,
+			unit VARCHAR(50),
+			rate DECIMAL(10, 2),
+			minimum_retain INT NOT NULL,
+			maximum_retain INT NOT NULL,
+			received INT DEFAULT 0,
+			issue INT DEFAULT 0,
+			reserved_stock INT DEFAULT 0,
+			stock INT NOT NULL,
+			value DECIMAL(10, 2) NOT NULL,
+			reorder_status BOOLEAN NOT NULL,
+			excess_stock INT NOT NULL,
+			excess_stock_value DECIMAL(10, 2) NOT NULL
+
+);`,
 	}
 
 	for _, query := range queries {
@@ -112,7 +133,7 @@ func (q *Query) CreateTables() error {
 
 func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 	var formdatas []models.InwardDropDown
-	rows, err := q.db.Query("SELECT b.buyer_name, s.supplier_name FROM buyer b CROSS JOIN supplier s;")
+	rows, err := q.db.Query("SELECT b.buyer_name, s.supplier_name ,c.category_name FROM buyer b CROSS JOIN supplier s CROSS JOIN category c;")
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +141,7 @@ func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 
 	for rows.Next() {
 		var formdata models.InwardDropDown
-		if err := rows.Scan(&formdata.Buyer, &formdata.Supplier); err != nil {
+		if err := rows.Scan(&formdata.Buyer, &formdata.Supplier, &formdata.Category); err != nil {
 			return nil, err
 		}
 		formdatas = append(formdatas, formdata)
@@ -255,6 +276,117 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	)
 	return err
 }
+func (q *Query) SubmitMaterialStock(material models.MaterialStock) error {
+
+	material.Stock = material.Received - material.Issue
+
+	if material.Stock < material.MinimumRetain {
+		material.ReorderStatus = "Yes"
+	} else {
+		material.ReorderStatus = "No"
+	}
+
+	if material.Stock > material.MaximumRetain {
+		material.ExcessStock = material.Stock - material.MaximumRetain
+		material.ExcessStockValue = float64(material.ExcessStock) * material.Rate
+	} else {
+		material.ExcessStock = 0
+		material.ExcessStockValue = 0
+	}
+
+	_, err := q.db.Exec(
+		`INSERT INTO material_stock (
+			timestamp,
+			supplier,
+			category,
+			lead_time,
+			std_non_std,
+			part_code,
+			unit,
+			rate,
+			minimum_retain,
+			maximum_retain,
+			received,
+			issue,
+			reserved_stock,
+			stock,
+			value,
+			reorder_status,
+			excess_stock,
+			excess_stock_value
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+		)`,
+		material.Timestamp,
+		material.Supplier,
+		material.Category,
+		material.LeadTime,
+		material.StdNonStd,
+		material.PartCode,
+		material.Unit,
+		material.Rate,
+		material.MinimumRetain,
+		material.MaximumRetain,
+		material.Received,
+		material.Issue,
+		material.ReservedStock,
+		material.Stock,
+		float64(material.Stock)*material.Rate,
+		material.ReorderStatus,
+		material.ExcessStock,
+		material.ExcessStockValue,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (q *Query) FetchAllMaterialStock() ([]models.MaterialStock, error) {
+	var materials []models.MaterialStock
+	rows, err := q.db.Query(`
+    SELECT
+        timestamp, supplier, category, lead_time, std_non_std, part_code, unit, rate, minimum_retain, maximum_retain, received, issue, reserved_stock, stock, value, reorder_status, excess_stock, excess_stock_value
+    FROM material_stock
+`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var material models.MaterialStock
+		err := rows.Scan(
+			&material.Timestamp,
+			&material.Supplier,
+			&material.Category,
+			&material.LeadTime,
+			&material.StdNonStd,
+			&material.PartCode,
+			&material.Unit,
+			&material.Rate,
+			&material.MinimumRetain,
+			&material.MaximumRetain,
+			&material.Received,
+			&material.Issue,
+			&material.ReservedStock,
+			&material.Stock,
+			&material.Value,
+			&material.ReorderStatus,
+			&material.ExcessStock,
+			&material.ExcessStockValue,
+		)
+		if err != nil {
+			return nil, err
+		}
+		materials = append(materials, material)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return materials, nil
+}
+
 func (q *Query) FetchAllFormOutwardData() ([]models.MaterialOutward, error) {
 	var materials []models.MaterialOutward
 	rows, err := q.db.Query(`
@@ -328,6 +460,69 @@ func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 	}
 
 	return materials, nil
+}
+func (q *Query) UpdateMaterialStock(material models.MaterialStock) error {
+	material.Stock = material.Received - material.Issue
+	material.Value = float64(material.Stock) * material.Rate
+
+	if material.Stock < material.MinimumRetain {
+		material.ReorderStatus = "Yes"
+	} else {
+		material.ReorderStatus = "No"
+	}
+
+	if material.Stock > material.MaximumRetain {
+		material.ExcessStock = material.Stock - material.MaximumRetain
+		material.ExcessStockValue = float64(material.ExcessStock) * material.Rate
+	} else {
+		material.ExcessStock = 0
+		material.ExcessStockValue = 0
+	}
+
+	_, err := q.db.Exec(
+		`UPDATE material_stock SET
+            timestamp = $1,
+            supplier = $2,
+            category = $3,
+            lead_time = $4,
+            std_non_std = $5,
+            part_code = $6,
+            unit = $7,
+            rate = $8,
+            minimum_retain = $9,
+            maximum_retain = $10,
+            received = $11,
+            issue = $12,
+            reserved_stock = $13,
+            stock = $14,
+            value = $15,
+            reorder_status = $16,
+            excess_stock = $17,
+            excess_stock_value = $18
+        WHERE part_code = $6 AND supplier = $2`,
+		material.Timestamp,
+		material.Supplier,
+		material.Category,
+		material.LeadTime,
+		material.StdNonStd,
+		material.PartCode,
+		material.Unit,
+		material.Rate,
+		material.MinimumRetain,
+		material.MaximumRetain,
+		material.Received,
+		material.Issue,
+		material.ReservedStock,
+		material.Stock,
+		material.Value,
+		material.ReorderStatus,
+		material.ExcessStock,
+		material.ExcessStockValue,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (q *Query) UpdateWarrantyDueDays() {
