@@ -42,3 +42,12 @@ func (msr *MaterialStockRepo) UpdateMaterialStock(material models.MaterialStock)
 	}
 	return nil
 }
+
+func (msr *MaterialStockRepo) FetchMaterialDropdownData() ([]models.MaterialStockDropDown, error) {
+	query := database.NewQuery(msr.db)
+	formData, err := query.FetchMaterialDropdownData()
+	if err != nil {
+		return nil, err
+	}
+	return formData, nil
+}

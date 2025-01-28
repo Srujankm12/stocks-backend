@@ -178,6 +178,26 @@ func (q *Query) FetchFormOutwardDropDown() ([]models.OutwardDropDown, error) {
 	}
 	return formdatasoutward, nil
 }
+
+func (q *Query) FetchMaterialDropdownData() ([]models.MaterialStockDropDown, error) {
+	var materialdropdown []models.MaterialStockDropDown
+	rows, err := q.db.Query("SELECT supplier_name,category_name,unit_name FROM supplier s CROSS JOIN category c CROSS JOIN unit u;")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var materialdropdowndata models.MaterialStockDropDown
+		if err := rows.Scan(&materialdropdowndata.Supplier, &materialdropdowndata.Category, &materialdropdowndata.Unit); err != nil {
+			return nil, err
+		}
+		materialdropdown = append(materialdropdown, materialdropdowndata)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return materialdropdown, nil
+}
 func (q *Query) SubmitFormOutwardData(material models.MaterialOutward) error {
 	result, err := q.db.Exec(
 		`INSERT INTO outwarddata (
@@ -278,14 +298,22 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 }
 func (q *Query) SubmitMaterialStock(material models.MaterialStock) error {
 
+	// Handle the timestamp if not provided
+	if material.Timestamp == "" {
+		material.Timestamp = time.Now().Format(time.RFC3339) // Set current timestamp
+	}
+
+	// Calculate the stock
 	material.Stock = material.Received - material.Issue
 
+	// Determine reorder status based on stock
 	if material.Stock < material.MinimumRetain {
 		material.ReorderStatus = "Yes"
 	} else {
 		material.ReorderStatus = "No"
 	}
 
+	// Calculate excess stock and excess stock value
 	if material.Stock > material.MaximumRetain {
 		material.ExcessStock = material.Stock - material.MaximumRetain
 		material.ExcessStockValue = float64(material.ExcessStock) * material.Rate
@@ -294,6 +322,7 @@ func (q *Query) SubmitMaterialStock(material models.MaterialStock) error {
 		material.ExcessStockValue = 0
 	}
 
+	// Execute the SQL query to insert the data
 	_, err := q.db.Exec(
 		`INSERT INTO material_stock (
 			timestamp,
@@ -331,14 +360,17 @@ func (q *Query) SubmitMaterialStock(material models.MaterialStock) error {
 		material.Issue,
 		material.ReservedStock,
 		material.Stock,
-		float64(material.Stock)*material.Rate,
+		float64(material.Stock)*material.Rate, // Calculate value based on stock and rate
 		material.ReorderStatus,
 		material.ExcessStock,
 		material.ExcessStockValue,
 	)
+
+	// Return error if query fails
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

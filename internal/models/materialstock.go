@@ -23,7 +23,14 @@ type MaterialStock struct {
 	ExcessStockValue float64 `json:"excess_stock_value"`
 }
 
+type MaterialStockDropDown struct {
+	Supplier string `json:"supplier"`
+	Category string `json:"category"`
+	Unit     string `json:"unit"`
+}
+
 type MaterialStockInterface interface {
+	FetchMaterialDropdownData() ([]MaterialStockDropDown, error)
 	SubmitMaterialStock(material MaterialStock) error
 	FetchAllMaterialStock(r *http.Request) ([]MaterialStock, error)
 	UpdateMaterialStock(material MaterialStock) error

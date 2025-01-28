@@ -63,3 +63,14 @@ func (msc *MaterialStockController) UpdateMaterialStockController(w http.Respons
 	w.WriteHeader(http.StatusOK)
 	utils.Encode(w, map[string]string{"message": "Material stock updated successfully"})
 }
+
+func (msc *MaterialStockController) FetchMaterialDropdownDataController(w http.ResponseWriter, r *http.Request) {
+	formData, err := msc.materialStockRepo.FetchMaterialDropdownData()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		utils.Encode(w, map[string]string{"message": "Failed to fetch material dropdown data"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	utils.Encode(w, formData)
+}

@@ -27,6 +27,7 @@ func registerRouter(db *sql.DB) *mux.Router {
 	router.HandleFunc("/fetchoutward", outwardcon.FetchFormOutwardDataController).Methods("GET")
 
 	materialstockcon := handlers.NewMaterialStockController(repository.NewMaterialStockRepo(db))
+	router.HandleFunc("/materialstockdropdown", materialstockcon.FetchMaterialDropdownDataController).Methods("GET")
 	router.HandleFunc("/materialstock", materialstockcon.SubmitMaterialStockController).Methods("POST")
 	router.HandleFunc("/materialstockdata", materialstockcon.FetchAllMaterialStockController).Methods("GET")
 	router.HandleFunc("/materialupdate", materialstockcon.UpdateMaterialStockController).Methods("POST")
