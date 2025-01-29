@@ -2,7 +2,9 @@ package models
 
 import "net/http"
 
+// MaterialStock represents a record of material stock in the system
 type MaterialStock struct {
+	ID               int     `json:"id"` // Adding an ID field
 	Timestamp        string  `json:"timestamp"`
 	Supplier         string  `json:"supplier"`
 	Category         string  `json:"category"`
@@ -18,17 +20,19 @@ type MaterialStock struct {
 	ReservedStock    int     `json:"reserved_stock"`
 	Stock            int     `json:"stock"`
 	Value            float64 `json:"value"`
-	ReorderStatus    string  `json:"reorder_status"`
+	ReorderStatus    bool    `json:"reorder_status"`
 	ExcessStock      int     `json:"excess_stock"`
 	ExcessStockValue float64 `json:"excess_stock_value"`
 }
 
+// MaterialStockDropDown is used for dropdown data like suppliers, categories, etc.
 type MaterialStockDropDown struct {
 	Supplier string `json:"supplier"`
 	Category string `json:"category"`
 	Unit     string `json:"unit"`
 }
 
+// MaterialStockInterface outlines the methods for interacting with the material stock data
 type MaterialStockInterface interface {
 	FetchMaterialDropdownData() ([]MaterialStockDropDown, error)
 	SubmitMaterialStock(material MaterialStock) error

@@ -20,7 +20,7 @@ func NewMaterialStockRepo(db *sql.DB) *MaterialStockRepo {
 
 func (msr *MaterialStockRepo) SubmitMaterialStock(material models.MaterialStock) error {
 	query := database.NewQuery(msr.db)
-	err := query.SubmitMaterialStock(material)
+	_, err := query.SubmitMaterialStock(material)
 	if err != nil {
 		return err
 	}
