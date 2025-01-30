@@ -160,7 +160,7 @@ func (q *Query) FetchFormData() ([]models.InwardDropDown, error) {
 
 func (q *Query) FetchFormOutwardDropDown() ([]models.OutwardDropDown, error) {
 	var formdatasoutward []models.OutwardDropDown
-	rows, err := q.db.Query("SELECT s.seller_name, b.region_name, i.issueagainst_name FROM seller s CROSS JOIN branch_region b CROSS JOIN issueagainst i;")
+	rows, err := q.db.Query("SELECT s.seller_name, b.region_name, i.issueagainst_name , c.category_name FROM seller s CROSS JOIN branch_region b CROSS JOIN issueagainst i CROSS JOIN category c;")
 	if err != nil {
 		log.Printf("Error executing query: %v", err)
 		return nil, err
@@ -170,7 +170,7 @@ func (q *Query) FetchFormOutwardDropDown() ([]models.OutwardDropDown, error) {
 
 	for rows.Next() {
 		var formOutwardData models.OutwardDropDown
-		if err := rows.Scan(&formOutwardData.Seller, &formOutwardData.BranchRegion, &formOutwardData.IssuesAgainst); err != nil {
+		if err := rows.Scan(&formOutwardData.Seller, &formOutwardData.BranchRegion, &formOutwardData.IssuesAgainst, &formOutwardData.Category); err != nil {
 			log.Printf("Error scanning row: %v", err)
 			return nil, err
 		}

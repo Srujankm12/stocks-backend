@@ -27,6 +27,7 @@ type OutwardDropDown struct {
 	Seller        string `json:"seller"`
 	BranchRegion  string `json:"branch_region"`
 	IssuesAgainst string `json:"issue_against"`
+	Category      string `json:"category"`
 }
 type MaterialOutwardInterface interface {
 	FetchFormDropdownData() ([]OutwardDropDown, error)
