@@ -1,9 +1,12 @@
 package models
 
-import "net/http"
+import (
+	"io"
 
-// MaterialStock represents a record of material stock in the system
-type MaterialStock struct {
+	"github.com/xuri/excelize/v2"
+)
+
+type ExcelDownloadMS struct {
 	ID               int     `json:"id"`
 	Timestamp        string  `json:"timestamp"`
 	Supplier         string  `json:"supplier"`
@@ -25,15 +28,6 @@ type MaterialStock struct {
 	ExcessStockValue float64 `json:"excess_stock_value"`
 }
 
-type MaterialStockDropDown struct {
-	Supplier string `json:"supplier"`
-	Category string `json:"category"`
-	Unit     string `json:"unit"`
-}
-
-type MaterialStockInterface interface {
-	FetchMaterialDropdownData() ([]MaterialStockDropDown, error)
-	SubmitMaterialStock(material MaterialStock) error
-	FetchAllMaterialStock(r *http.Request) ([]MaterialStock, error)
-	UpdateMaterialStock(material MaterialStock) error
+type ExcelDownloadMSInterface interface {
+	CreateMaterialStock(*io.ReadCloser) (*excelize.File, error)
 }

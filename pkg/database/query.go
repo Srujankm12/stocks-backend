@@ -547,13 +547,40 @@ func (q *Query) UpdateMaterialStock(material models.MaterialStock) error {
 
 	return nil
 }
+func (q *Query) FetchAllData() ([]models.ExcelDownloadMS, error) {
+	var data []models.ExcelDownloadMS
+	rows, err := q.db.Query("SELECT * FROM material_stock")
+	if err != nil {
+		fmt.Println("Error executing query:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var record models.ExcelDownloadMS
+		if err := rows.Scan(&record.ID, &record.Timestamp, &record.Supplier, &record.Category, &record.LeadTime,
+			&record.StdNonStd, &record.PartCode, &record.Unit, &record.Rate, &record.MinimumRetain,
+			&record.MaximumRetain, &record.Received, &record.Issue, &record.ReservedStock, &record.Stock,
+			&record.Value, &record.ReorderStatus, &record.ExcessStock, &record.ExcessStockValue); err != nil {
+			fmt.Println("Error scanning row:", err)
+			return nil, err
+		}
+		data = append(data, record)
+	}
+
+	if len(data) == 0 {
+		fmt.Println("No records found")
+		return nil, nil
+	}
+
+	return data, nil
+}
 
 func (q *Query) UpdateWarrantyDueDays() {
-	// Schedule the cron job to run every 1 second
+
 	_, err := q.cron.AddFunc("@every 1s", func() {
 		log.Println("Cron job triggered: Updating warranty_due_days")
 
-		// Update warranty_due_days for submitteddata
 		result, err := q.db.Exec(`
 			UPDATE submitteddata
 			SET warranty_due_days = GREATEST(warranty_due_days - 1, 0)
@@ -571,7 +598,6 @@ func (q *Query) UpdateWarrantyDueDays() {
 		}
 		log.Printf("Warranty due days updated in submitteddata. %d rows affected.", rowsAffected)
 
-		// Update warranty_due_days for outwarddata
 		result, err = q.db.Exec(`
 			UPDATE outwarddata
 			SET warranty_due_days = GREATEST(warranty_due_days - 1, 0)
@@ -593,7 +619,6 @@ func (q *Query) UpdateWarrantyDueDays() {
 		log.Fatalf("Error scheduling cron job: %v", err)
 	}
 
-	// Start the cron scheduler
 	q.cron.Start()
 	log.Println("Cron job for updating warranty due days started successfully.")
 }
