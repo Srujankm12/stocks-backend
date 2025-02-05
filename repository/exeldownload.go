@@ -17,7 +17,6 @@ func NewExcelDownloadMSRepo(db *sql.DB) *ExcelDownloadMSRepo {
 	return &ExcelDownloadMSRepo{db: db}
 }
 
-// Fetch data for Material Stock from the database
 func (edr *ExcelDownloadMSRepo) FetchAllData() ([]models.ExcelDownloadMS, error) {
 	var data []models.ExcelDownloadMS
 	rows, err := edr.db.Query("SELECT * FROM material_stock")
@@ -44,7 +43,6 @@ func (edr *ExcelDownloadMSRepo) FetchAllData() ([]models.ExcelDownloadMS, error)
 	return data, nil
 }
 
-// Create Excel file for Material Stock data
 func (edr *ExcelDownloadMSRepo) CreateMaterialStock() (*excelize.File, error) {
 	file := excelize.NewFile()
 	defer func() {

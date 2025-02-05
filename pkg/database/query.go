@@ -62,7 +62,6 @@ func (q *Query) CreateTables() error {
 			partcode VARCHAR(255) NOT NULL,
 			serial_number VARCHAR(255) NOT NULL,
 			qty INT NOT NULL,
-			remaining_qty INT NOT NULL,
 			po_no VARCHAR(255) NOT NULL,
 			po_date DATE NOT NULL,
 			invoice_no VARCHAR(255) NOT NULL,
@@ -262,25 +261,11 @@ func (q *Query) SubmitFormOutwardData(material models.MaterialOutward) error {
 func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	_, err := q.db.Exec(
 		`INSERT INTO submitteddata (
-			timestamp,
-			supplier,
-			buyer,
-			partcode,
-			serial_number,
-			qty,
-			remaining_qty,
-			po_no,
-			po_date,
-			invoice_no,
-			invoice_date,
-			received_date,
-			unit_price_per_qty,
-			category,
-			warranty,
-			warranty_due_days
+			timestamp, supplier, buyer, partcode, serial_number, qty, po_no, 
+			po_date, invoice_no, invoice_date, received_date, unit_price_per_qty, 
+			category, warranty, warranty_due_days
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14 ,$15
-			
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 		)`,
 		material.Timestamp,
 		material.Supplier,
@@ -298,6 +283,7 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 		material.Warranty,
 		material.Warranty,
 	)
+
 	return err
 }
 func (q *Query) SubmitMaterialStock(material models.MaterialStock) (int, error) {
@@ -575,7 +561,58 @@ func (q *Query) FetchAllData() ([]models.ExcelDownloadMS, error) {
 
 	return data, nil
 }
+func (q *Query) FetchExelMi() ([]models.ExcelDownloadMI, error) {
+	var data []models.ExcelDownloadMI
+	rows, err := q.db.Query("SELECT * FROM submitteddata")
+	if err != nil {
+		fmt.Println("Error executing query:", err)
+		return nil, err
+	}
+	defer rows.Close()
 
+	for rows.Next() {
+		var record models.ExcelDownloadMI
+		if err := rows.Scan(&record.Timestamp, &record.Supplier, &record.Buyer, &record.PartCode, &record.SerialNumber,
+			&record.Quantity, &record.PONo, &record.PODate, &record.InvoiceNo, &record.InvoiceDate,
+			&record.ReceivedDate, &record.UnitPricePerQty, &record.Category, &record.Warranty, &record.WarrantyDueDays); err != nil {
+			fmt.Println("Error scanning row:", err)
+			return nil, err
+		}
+
+		data = append(data, record)
+	}
+	if len(data) == 0 {
+		fmt.Println("No records found")
+		return nil, nil
+	}
+	return data, nil
+}
+
+func (q *Query) FetchExelMO() ([]models.ExcelDownloadMO, error) {
+	var data []models.ExcelDownloadMO
+	rows, err := q.db.Query("SELECT * FROM outwarddata")
+	if err != nil {
+		fmt.Println("Error executing query:", err)
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var record models.ExcelDownloadMO
+		if err := rows.Scan(&record.Timestamp, &record.Customer, &record.Seller, &record.BranchRegion, &record.PartCode, &record.SerialNumber, &record.Quantity, &record.CusPONo, &record.CusPODate, &record.CusInvoiceNo, &record.CusInvoiceDate, &record.DeliveredDate, &record.UnitPricePerQty, &record.IssuesAgainst, &record.Notes, &record.Category, &record.Warranty, &record.WarrantyDueDays); err != nil {
+			fmt.Println("Error scanning row:", err)
+			return nil, err
+		}
+		data = append(data, record)
+
+	}
+	if len(data) == 0 {
+		fmt.Println("No records found")
+		return nil, nil
+	}
+	return data, nil
+}
 func (q *Query) UpdateWarrantyDueDays() {
 
 	_, err := q.cron.AddFunc("@every 1s", func() {
