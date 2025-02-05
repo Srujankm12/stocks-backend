@@ -49,6 +49,14 @@ func registerRouter(db *sql.DB) *mux.Router {
 		filePath := fmt.Sprintf("/Users/bunny/Desktop/Finalyear/test%s", fileName)
 		http.ServeFile(w, r, filePath)
 	}).Methods("GET")
-	return router
 
+	excelconout := handlers.NewExcelDownloadMOController(repository.NewExcelDownloadMORepo(db))
+	router.HandleFunc("/downloadoutward", excelconout.DownloadMaterialOutward).Methods("GET")
+	router.HandleFunc("/Users/bunny/Desktop/Finalyear/test", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		fileName := vars["filename"]
+		filePath := fmt.Sprintf("/Users/bunny/Desktop/Finalyear/test%s", fileName)
+		http.ServeFile(w, r, filePath)
+	}).Methods("GET")
+	return router
 }
