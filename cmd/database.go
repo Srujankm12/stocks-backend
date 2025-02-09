@@ -8,16 +8,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Connection struct {
-	DB *sql.DB
-}
-
-func NewConnection() *Connection {
+// NewConnection initializes a new database connection
+func NewConnection() *sql.DB {
 	conn, err := sql.Open("postgres", os.Getenv("DB_URL"))
 	if err != nil {
-		log.Fatalf("unable to create database")
+		log.Fatalf("unable to create database: %v", err)
 	}
-	return &Connection{
-		DB: conn,
-	}
+	return conn
 }

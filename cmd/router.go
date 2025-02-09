@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// registerRouter initializes all routes
 func registerRouter(db *sql.DB) *mux.Router {
 	router := mux.NewRouter()
 	router.Use(middlewares.CorsMiddleware)
@@ -36,7 +37,7 @@ func registerRouter(db *sql.DB) *mux.Router {
 	router.HandleFunc("/Users/bunny/Desktop/Finalyear/test", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		fileName := vars["filename"]
-		filePath := fmt.Sprintf("/Users/bunny/Desktop/Finalyear/test%s", fileName) // Update if your temp directory is different
+		filePath := fmt.Sprintf("/Users/bunny/Desktop/Finalyear/test%s", fileName)
 
 		http.ServeFile(w, r, filePath)
 	}).Methods("GET")
