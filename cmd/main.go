@@ -10,33 +10,31 @@ import (
 )
 
 func main() {
-	// Load environment variables
+
 	if err := godotenv.Load(".env"); err != nil {
 		log.Fatalf("unable to load env: %v", err)
 	}
-
-	// Create a new database connection
 	conn := NewConnection()
-	defer conn.Close() // FIX: Use `conn.Close()` instead of `conn.DB.Close()`
-
-	// Create tables if they don't exist
-	query := database.NewQuery(conn)
-	if err := query.CreateTables(); err != nil {
-		log.Fatalf("Unable to create database tables: %v", err)
-	}
-
-	// Server configuration
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080" // Default port if not set
-	}
+	defer conn.DB.Close()
 	server := &http.Server{
-		Addr:    ":" + port, // FIX: Ensure valid port format
-		Handler: registerRouter(conn),
+		Addr:    os.Getenv("PORT"),
+		Handler: registerRouter(conn.DB),
 	}
+	query := database.NewQuery(conn.DB)
+	err := query.CreateTables()
+	if err != nil {
+		log.Fatal("Unable to create database %v", err)
+	}
+	// go query.UpdateWarrantyDueDays()
 
-	log.Printf("Server is running at port %s", port)
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatalf("Unable to start the server: %v", err)
+	// err = query.InsertSampleData()
+	// if err != nil {
+	// 	log.Fatal("Unable to create database %v", err)
+	// }
+
+	log.Printf("server is running at port %s", os.Getenv("PORT"))
+	err = server.ListenAndServe()
+	if err != nil {
+		log.Fatalf("unable to start the server: %v", err)
 	}
 }
