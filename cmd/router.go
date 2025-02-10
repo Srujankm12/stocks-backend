@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/Srujankm12/SRstocks/internal/handlers"
 	"github.com/Srujankm12/SRstocks/internal/middlewares"
@@ -52,12 +53,18 @@ func registerRouter(db *sql.DB) *mux.Router {
 	}).Methods("GET")
 
 	excelconout := handlers.NewExcelDownloadMOController(repository.NewExcelDownloadMORepo(db))
+
 	router.HandleFunc("/downloadoutward", excelconout.DownloadMaterialOutward).Methods("GET")
-	router.HandleFunc("/Users/bunny/Desktop/Finalyear/test", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		fileName := vars["filename"]
-		filePath := fmt.Sprintf("/Users/bunny/Desktop/Finalyear/test%s", fileName)
-		http.ServeFile(w, r, filePath)
-	}).Methods("GET")
+
+	// ✅ Dynamically use temp directory based on OS
+	tempDir := "/tmp" // macOS/Linux
+	if os.Getenv("OS") == "Windows_NT" {
+		tempDir = os.Getenv("TEMP") // Windows temp directory
+	}
+
+	// ✅ Serve files from the correct temp directory
+	router.PathPrefix("/files/").Handler(http.StripPrefix("/files/", http.FileServer(http.Dir(tempDir)))).Methods("GET")
+
 	return router
+
 }

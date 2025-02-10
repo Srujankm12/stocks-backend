@@ -16,7 +16,6 @@ type ExcelDownloadMOController struct {
 func NewExcelDownloadMOController(repo *repository.ExcelDownloadMORepo) *ExcelDownloadMOController {
 	return &ExcelDownloadMOController{repo: repo}
 }
-
 func (edc *ExcelDownloadMOController) DownloadMaterialOutward(w http.ResponseWriter, r *http.Request) {
 	data, err := edc.repo.FetchExcelMO()
 	if err != nil {
@@ -33,11 +32,14 @@ func (edc *ExcelDownloadMOController) DownloadMaterialOutward(w http.ResponseWri
 		"CusPODate", "CusInvoiceNo", "CusInvoiceDate", "DeliveredDate", "UnitPricePerQty", "IssuesAgainst",
 		"Notes", "Category", "Warranty", "WarrantyDueDays",
 	}
+
+	// Set headers
 	for colIndex, header := range headers {
 		cell := fmt.Sprintf("%s1", string(65+colIndex))
 		file.SetCellValue(sheetName, cell, header)
 	}
 
+	// Fill data
 	for i, record := range data {
 		rowNum := i + 2
 		file.SetCellValue(sheetName, fmt.Sprintf("A%d", rowNum), record.Timestamp)
@@ -59,18 +61,30 @@ func (edc *ExcelDownloadMOController) DownloadMaterialOutward(w http.ResponseWri
 		file.SetCellValue(sheetName, fmt.Sprintf("Q%d", rowNum), record.Warranty)
 		file.SetCellValue(sheetName, fmt.Sprintf("R%d", rowNum), record.WarrantyDueDays)
 	}
-	tempDir := "/Users/bunny/Desktop/Finalyear/test/"
+
+	// ✅ Ensure a writable temp directory
+	tempDir := "/tmp" // ✅ Works on macOS/Linux
+	if os.Getenv("OS") == "Windows_NT" {
+		tempDir = os.Getenv("TEMP") // ✅ Use Windows temp folder
+	}
+
+	// ✅ Ensure directory exists
 	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
-		http.Error(w, fmt.Sprintf("Error creating temporary directory: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error creating temp directory: %v", err), http.StatusInternalServerError)
 		return
 	}
-	filePath := fmt.Sprintf("%sMaterialOutward.xlsx", tempDir)
 
+	// ✅ Create file in the correct temp directory
+	filePath := fmt.Sprintf("%s/MaterialOutward.xlsx", tempDir)
+
+	// Save the file
 	if err := file.SaveAs(filePath); err != nil {
 		http.Error(w, fmt.Sprintf("Error saving file: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(fmt.Sprintf("File saved. You can download it from: Users/bunny/Desktop/Finalyear/test/Materialoutward.xlsx\n")))
+	// Serve the file as a download
+	w.Header().Set("Content-Disposition", "attachment; filename=MaterialOutward.xlsx")
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	http.ServeFile(w, r, filePath)
 }

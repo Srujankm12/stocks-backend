@@ -44,6 +44,10 @@ func (edr *ExcelDownloadMORepo) FetchExcelMO() ([]models.ExcelDownloadMO, error)
 		data = append(data, record)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading rows: %v", err)
+	}
+
 	if len(data) == 0 {
 		fmt.Println("No records found")
 		return []models.ExcelDownloadMO{}, nil
@@ -60,13 +64,13 @@ func (edr *ExcelDownloadMORepo) CreateMaterialOutward() (*excelize.File, error) 
 		return nil, err
 	}
 
-	if len(data) == 0 {
-		fmt.Println("No records found")
-		return nil, nil
-	}
-
 	sheetName := "Material Outward"
-	file.NewSheet(sheetName)
+	index, err := file.NewSheet(sheetName)
+	if err != nil {
+		return nil, err
+	}
+	file.SetActiveSheet(index)
+	file.DeleteSheet("Sheet1")
 
 	headers := []string{
 		"Timestamp", "Customer", "Seller", "Branch Region", "Part Code",
@@ -103,6 +107,11 @@ func (edr *ExcelDownloadMORepo) CreateMaterialOutward() (*excelize.File, error) 
 		file.SetCellValue(sheetName, fmt.Sprintf("P%d", row), record.Category)
 		file.SetCellValue(sheetName, fmt.Sprintf("Q%d", row), record.Warranty)
 		file.SetCellValue(sheetName, fmt.Sprintf("R%d", row), record.WarrantyDueDays)
+	}
+
+	if len(data) == 0 {
+		fmt.Println("No records found")
+		return file, nil // Return an empty file instead of nil
 	}
 
 	return file, nil
