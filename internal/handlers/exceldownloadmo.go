@@ -33,7 +33,6 @@ func (edc *ExcelDownloadMOController) DownloadMaterialOutward(w http.ResponseWri
 		"Notes", "Category", "Warranty", "WarrantyDueDays",
 	}
 
-	// Set headers
 	for colIndex, header := range headers {
 		cell := fmt.Sprintf("%s1", string(65+colIndex))
 		file.SetCellValue(sheetName, cell, header)
@@ -62,28 +61,23 @@ func (edc *ExcelDownloadMOController) DownloadMaterialOutward(w http.ResponseWri
 		file.SetCellValue(sheetName, fmt.Sprintf("R%d", rowNum), record.WarrantyDueDays)
 	}
 
-	// ✅ Ensure a writable temp directory
-	tempDir := "/tmp" // ✅ Works on macOS/Linux
+	tempDir := "/tmp"
 	if os.Getenv("OS") == "Windows_NT" {
-		tempDir = os.Getenv("TEMP") // ✅ Use Windows temp folder
+		tempDir = os.Getenv("TEMP")
 	}
 
-	// ✅ Ensure directory exists
 	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
 		http.Error(w, fmt.Sprintf("Error creating temp directory: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// ✅ Create file in the correct temp directory
 	filePath := fmt.Sprintf("%s/MaterialOutward.xlsx", tempDir)
 
-	// Save the file
 	if err := file.SaveAs(filePath); err != nil {
 		http.Error(w, fmt.Sprintf("Error saving file: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Serve the file as a download
 	w.Header().Set("Content-Disposition", "attachment; filename=MaterialOutward.xlsx")
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	http.ServeFile(w, r, filePath)

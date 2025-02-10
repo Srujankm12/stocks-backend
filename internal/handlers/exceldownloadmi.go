@@ -55,18 +55,24 @@ func (edc *ExcelDownloadMIController) DownloadMaterialInward(w http.ResponseWrit
 		file.SetCellValue(sheetName, fmt.Sprintf("N%d", rowNum), record.Warranty)
 		file.SetCellValue(sheetName, fmt.Sprintf("O%d", rowNum), record.WarrantyDueDays)
 	}
-	tempDir := "/Users/bunny/Desktop/Finalyear/test/"
+	tempDir := "/tmp"
+	if os.Getenv("OS") == "Windows_NT" {
+		tempDir = os.Getenv("TEMP")
+	}
+
 	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
-		http.Error(w, fmt.Sprintf("Error creating temporary directory: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error creating temp directory: %v", err), http.StatusInternalServerError)
 		return
 	}
-	filePath := fmt.Sprintf("%sMaterialInward.xlsx", tempDir)
+
+	filePath := fmt.Sprintf("%s/MaterialInward.xlsx", tempDir)
 
 	if err := file.SaveAs(filePath); err != nil {
 		http.Error(w, fmt.Sprintf("Error saving file: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(fmt.Sprintf("File saved. You can download it from: Users/bunny/Desktop/Finalyear/test/Materialinward.xlsx\n")))
+	w.Header().Set("Content-Disposition", "attachment; filename=MaterialInward.xlsx")
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	http.ServeFile(w, r, filePath)
 }
