@@ -112,9 +112,6 @@ func (q *Query) CreateTables() error {
 			reorder_status BOOLEAN NOT NULL,
 			excess_stock INT NOT NULL,
 			excess_stock_value DECIMAL(10, 2) NOT NULL
-
-
-
 );`,
 	}
 
@@ -288,7 +285,7 @@ func (q *Query) SubmitFormData(material models.MaterialInward) error {
 }
 func (q *Query) SubmitMaterialStock(material models.MaterialStock) (int, error) {
 	if material.Timestamp == "" {
-		material.Timestamp = time.Now().Format(time.RFC3339) // Set current timestamp
+		material.Timestamp = time.Now().Format(time.RFC3339)
 	}
 
 	material.Stock = material.Received - material.Issue
