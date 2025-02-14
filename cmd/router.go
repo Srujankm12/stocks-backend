@@ -40,6 +40,9 @@ func registerRouter(db *sql.DB) *mux.Router {
 	excelconout := handlers.NewExcelDownloadMOController(repository.NewExcelDownloadMORepo(db))
 	router.HandleFunc("/downloadoutward", excelconout.DownloadMaterialOutward).Methods("GET")
 
+	mat := handlers.NewMaterialHandler(repository.NewMaterialRepository(db))
+	router.HandleFunc("/material", mat.GetStockHandler).Methods("POST")
+
 	tempDir := "/tmp"
 	if os.Getenv("OS") == "Windows_NT" {
 		tempDir = os.Getenv("TEMP")
