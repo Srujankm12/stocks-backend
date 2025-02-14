@@ -3,6 +3,7 @@ package models
 import "net/http"
 
 type MaterialInward struct {
+	ID              int     `json:"id"`
 	Timestamp       string  `json:"timestamp"`
 	Supplier        string  `json:"supplier"`
 	Buyer           string  `json:"buyer"`

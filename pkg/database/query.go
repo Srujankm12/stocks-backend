@@ -56,6 +56,7 @@ func (q *Query) CreateTables() error {
 			seller_name VARCHAR(100) NOT NULL UNIQUE
 		)`,
 		`CREATE TABLE IF NOT EXISTS submitteddata (
+		    id SERIAL PRIMARY KEY,
 			timestamp VARCHAR(255) NOT NULL,
 			supplier VARCHAR(255) NOT NULL,
 			buyer VARCHAR(255) NOT NULL,
@@ -258,12 +259,13 @@ func (q *Query) SubmitFormOutwardData(material models.MaterialOutward) error {
 func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	_, err := q.db.Exec(
 		`INSERT INTO submitteddata (
-			timestamp, supplier, buyer, partcode, serial_number, qty, po_no, 
+			id,timestamp, supplier, buyer, partcode, serial_number, qty, po_no, 
 			po_date, invoice_no, invoice_date, received_date, unit_price_per_qty, 
 			category, warranty, warranty_due_days
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,$16
 		)`,
+		material.ID,
 		material.Timestamp,
 		material.Supplier,
 		material.Buyer,
@@ -424,15 +426,15 @@ func (q *Query) FetchAllFormOutwardData() ([]models.MaterialOutward, error) {
 
 	return materials, nil
 }
-
 func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 	var materials []models.MaterialInward
 	rows, err := q.db.Query(`
         SELECT 
-            timestamp, supplier, buyer, partcode, serial_number, qty, po_no, po_date, 
+            id, timestamp, supplier, buyer, partcode, serial_number, qty, po_no, po_date, 
             invoice_no, invoice_date, received_date, unit_price_per_qty, category, 
             warranty, warranty_due_days 
         FROM submitteddata
+        ORDER BY received_date ASC
     `)
 	if err != nil {
 		return nil, err
@@ -442,15 +444,18 @@ func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 	for rows.Next() {
 		var material models.MaterialInward
 		err := rows.Scan(
-			&material.Timestamp, &material.Supplier, &material.Buyer, &material.PartCode,
-			&material.SerialNumber, &material.Quantity, &material.PONo, &material.PODate,
-			&material.InvoiceNo, &material.InvoiceDate, &material.ReceivedDate,
-			&material.UnitPricePerQty, &material.Category, &material.Warranty,
-			&material.WarrantyDueDays,
+			&material.ID, &material.Timestamp, &material.Supplier, &material.Buyer,
+			&material.PartCode, &material.SerialNumber, &material.Quantity, &material.PONo,
+			&material.PODate, &material.InvoiceNo, &material.InvoiceDate, &material.ReceivedDate,
+			&material.UnitPricePerQty, &material.Category, &material.Warranty, &material.WarrantyDueDays,
 		)
 		if err != nil {
 			return nil, err
 		}
+
+		// 🔍 Debugging: Print fetched row
+		fmt.Printf("Fetched: %+v\n", material)
+
 		materials = append(materials, material)
 	}
 
@@ -460,6 +465,7 @@ func (q *Query) FetchAllFormData() ([]models.MaterialInward, error) {
 
 	return materials, nil
 }
+
 func (q *Query) UpdateMaterialStock(material models.MaterialStock) error {
 	material.Stock = material.Received - material.Issue
 	material.Value = float64(material.Stock) * material.Rate
