@@ -259,13 +259,12 @@ func (q *Query) SubmitFormOutwardData(material models.MaterialOutward) error {
 func (q *Query) SubmitFormData(material models.MaterialInward) error {
 	_, err := q.db.Exec(
 		`INSERT INTO submitteddata (
-			id,timestamp, supplier, buyer, partcode, serial_number, qty, po_no, 
+			timestamp, supplier, buyer, partcode, serial_number, qty, po_no, 
 			po_date, invoice_no, invoice_date, received_date, unit_price_per_qty, 
 			category, warranty, warranty_due_days
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 		)`,
-		material.ID,
 		material.Timestamp,
 		material.Supplier,
 		material.Buyer,
