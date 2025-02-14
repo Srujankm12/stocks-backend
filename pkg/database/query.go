@@ -575,7 +575,7 @@ func (q *Query) FetchExelMi() ([]models.ExcelDownloadMI, error) {
 
 	for rows.Next() {
 		var record models.ExcelDownloadMI
-		if err := rows.Scan(&record.Timestamp, &record.Supplier, &record.Buyer, &record.PartCode, &record.SerialNumber,
+		if err := rows.Scan(&record.ID, &record.Timestamp, &record.Supplier, &record.Buyer, &record.PartCode, &record.SerialNumber,
 			&record.Quantity, &record.PONo, &record.PODate, &record.InvoiceNo, &record.InvoiceDate,
 			&record.ReceivedDate, &record.UnitPricePerQty, &record.Category, &record.Warranty, &record.WarrantyDueDays); err != nil {
 			fmt.Println("Error scanning row:", err)
