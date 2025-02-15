@@ -661,14 +661,19 @@ func (q *Query) UpdateWarrantyDueDays() {
 	q.cron.Start()
 	log.Println("Cron job for updating warranty due days started successfully.")
 }
-func (q *Query) GetMaterialStock() (map[string]int, error) {
-	stock := make(map[string]int)
+func (q *Query) GetMaterialStock() ([]map[string]interface{}, error) {
+	stockData := []map[string]interface{}{}
 
 	rows, err := q.db.Query(`
         WITH received_cte AS (
             SELECT partcode, SUM(qty) AS total_received
             FROM submitteddata
             GROUP BY partcode
+        ),
+        latest_price_cte AS (
+            SELECT DISTINCT ON (partcode) partcode, unit_price_per_qty 
+            FROM submitteddata 
+            ORDER BY partcode, id DESC  -- Fetch latest unit price
         ),
         issued_cte AS (
             SELECT partcode, SUM(quantity) AS total_issued
@@ -679,9 +684,12 @@ func (q *Query) GetMaterialStock() (map[string]int, error) {
             COALESCE(r.partcode, i.partcode) AS partcode,
             COALESCE(r.total_received, 0) AS total_received,
             COALESCE(i.total_issued, 0) AS total_issued,
-            (COALESCE(r.total_received, 0) - COALESCE(i.total_issued, 0)) AS stock
+            (COALESCE(r.total_received, 0) - COALESCE(i.total_issued, 0)) AS stock,
+            COALESCE(lp.unit_price_per_qty, 0) * (COALESCE(r.total_received, 0) - COALESCE(i.total_issued, 0)) AS stock_value,
+            CASE WHEN (COALESCE(r.total_received, 0) - COALESCE(i.total_issued, 0)) <= 0 THEN true ELSE false END AS reorder_status
         FROM received_cte r
-        FULL OUTER JOIN issued_cte i ON r.partcode = i.partcode;
+        FULL OUTER JOIN issued_cte i ON r.partcode = i.partcode
+        LEFT JOIN latest_price_cte lp ON lp.partcode = COALESCE(r.partcode, i.partcode);
     `)
 
 	if err != nil {
@@ -691,19 +699,28 @@ func (q *Query) GetMaterialStock() (map[string]int, error) {
 
 	for rows.Next() {
 		var partCode string
-		var totalReceived, totalIssued, stockValue int
+		var totalReceived, totalIssued, totalStock int
+		var stockValue float64
+		var reorderStatus bool
 
-		err := rows.Scan(&partCode, &totalReceived, &totalIssued, &stockValue)
+		err := rows.Scan(&partCode, &totalReceived, &totalIssued, &totalStock, &stockValue, &reorderStatus)
 		if err != nil {
 			return nil, err
 		}
 
-		stock[partCode] = stockValue
+		stockData = append(stockData, map[string]interface{}{
+			"part_code":      partCode,
+			"received":       totalReceived,
+			"issued":         totalIssued,
+			"stock":          totalStock,
+			"stock_value":    stockValue,
+			"reorder_status": reorderStatus,
+		})
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return stock, nil
+	return stockData, nil
 }
