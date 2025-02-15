@@ -52,7 +52,7 @@ func (r *MaterialRepository) GetMaterialStock() ([]models.MaterialStockUpdated, 
 		}
 
 		// Determine reorder status (if stock < 0, needs reorder)
-		stock.ReorderStatus = stock.Stock < 0
+		stock.ReorderStatus = stock.Stock < 1
 		stocks = append(stocks, stock)
 	}
 
