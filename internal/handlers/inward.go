@@ -78,3 +78,20 @@ func (ic *InwardController) FetchFormInwardDataController(w http.ResponseWriter,
 	w.WriteHeader(http.StatusOK)
 	utils.Encode(w, inwardData)
 }
+func (ic *InwardController) UpdateMaterialInwardController(w http.ResponseWriter, r *http.Request) {
+	var material models.MaterialInward
+	err := json.NewDecoder(r.Body).Decode(&material)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		utils.Encode(w, map[string]string{"message": "Invalid request body"})
+		return
+	}
+	err = ic.inwardRepo.UpdateMaterialInward(material)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		utils.Encode(w, map[string]string{"message": err.Error()})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	utils.Encode(w, map[string]string{"message": "success"})
+}

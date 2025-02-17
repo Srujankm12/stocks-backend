@@ -3,6 +3,7 @@ package models
 import "net/http"
 
 type MaterialOutward struct {
+	ID              int     `json:"id"`
 	Timestamp       string  `json:"timestamp"`
 	Customer        string  `json:"customer"`
 	Seller          string  `json:"seller"`
@@ -33,4 +34,5 @@ type MaterialOutwardInterface interface {
 	FetchFormDropdownData() ([]OutwardDropDown, error)
 	SubmitFormOutwardData(material MaterialOutward) error
 	FetchAllFormOutwardData(r *http.Request) ([]MaterialOutward, error)
+	UpdateFormOutwardData(material MaterialOutward) error
 }

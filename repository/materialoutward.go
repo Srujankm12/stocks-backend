@@ -46,3 +46,12 @@ func (mir *MaterialOutwardRepo) FetchAllFormOutwardData(r *http.Request) ([]mode
 	}
 	return formData, nil
 }
+
+func (mir *MaterialOutwardRepo) UpdateFormOutwardData(material models.MaterialOutward) error {
+	query := database.NewQuery(mir.db)
+	err := query.UpdateMaterialOutward(material)
+	if err != nil {
+		return err
+	}
+	return nil
+}

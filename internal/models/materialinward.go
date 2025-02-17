@@ -31,4 +31,5 @@ type MaterialInwardInterface interface {
 	FetchFormData() ([]InwardDropDown, error)
 	SubmitFormData(material MaterialInward) error
 	FetchAllFormDataInward(r *http.Request) ([]MaterialInward, error)
+	UpdateMaterialInward(material MaterialInward) error
 }
