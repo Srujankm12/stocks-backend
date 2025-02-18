@@ -502,7 +502,7 @@ func (q *Query) UpdateMaterialInward(material models.MaterialInward) error {
 		material.UnitPricePerQty,
 		material.Category,
 		material.Warranty,
-		material.WarrantyDueDays,
+		material.Warranty,
 		material.ID,
 	)
 	if err != nil {
@@ -555,7 +555,7 @@ func (q *Query) UpdateMaterialOutward(material models.MaterialOutward) error {
 		material.Notes,
 		material.Category,
 		material.Warranty,
-		material.WarrantyDueDays,
+		material.Warranty,
 		material.ID,
 	)
 	if err != nil {
