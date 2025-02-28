@@ -509,11 +509,15 @@ func (q *Query) UpdateMaterialInward(material models.MaterialInward) error {
 		return err
 	}
 	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
 	if rowsAffected == 0 {
 		return fmt.Errorf("no rows updated")
 	}
 	return nil
 }
+
 func (q *Query) UpdateMaterialOutward(material models.MaterialOutward) error {
 	query := `
         UPDATE outwarddata SET

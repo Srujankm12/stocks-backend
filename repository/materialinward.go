@@ -47,6 +47,7 @@ func (mir *MaterialInwardRepo) FetchAllFormDataInward(r *http.Request) ([]models
 	}
 	return formData, nil
 }
+
 func (mir *MaterialInwardRepo) UpdateMaterialInward(material models.MaterialInward) error {
 	query := database.NewQuery(mir.db)
 	err := query.UpdateMaterialInward(material)
